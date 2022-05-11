@@ -60,20 +60,36 @@ func (v *VideoDao) SelectListByLimit(time int64, limit int) ([]*Video, error) {
 	return video, nil
 }
 
-func (v *VideoDao) UpdateFavoriteById(videoId int64, actionType int) error {
+func (v *VideoDao) SelectById(id int64) ([]*Video, error) {
+	var video []*Video
+	err := db.Where("id = ?", id).Find(&video).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	} else if err != nil {
+		util.Logger.Error("find video by userId err:" + err.Error())
+		return nil, err
+	}
+	return video, nil
+}
+
+func (v *VideoDao) UpdateFavoriteById(userId int64, videoId int64, actionType int) error {
 	var str string
 	if actionType == 1 {
 		str = "+"
 	} else {
 		str = "-"
 	}
-	err := db.Table("video").Where("id = ?", videoId).Update("favorite_count", gorm.Expr("favorite_count"+str+"?", 1)).Error
-
-	if err == gorm.ErrRecordNotFound {
+	if err := db.Table("video").Where("id = ?", videoId).Update("favorite_count", gorm.Expr("favorite_count"+str+"?", 1)).Error; err != nil {
 		return err
-	} else if err != nil {
-		util.Logger.Error("find video by userId err:" + err.Error())
-		return err
+	}
+	if actionType == 1 {
+		if err := NewFavoriteDaoInstance().CreateInstance(userId, videoId); err != nil {
+			return err
+		}
+	} else {
+		if err := NewFavoriteDaoInstance().DeleteInstance(userId, videoId); err != nil {
+			return err
+		}
 	}
 	return nil
 }

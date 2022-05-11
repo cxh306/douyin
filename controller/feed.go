@@ -18,7 +18,7 @@ type FeedResponse struct {
 func Feed(c *gin.Context) {
 	latestTime := c.Query("latest_time")
 	timeUnix, _ := strconv.ParseInt(latestTime, 10, 64)
-	videoList, nextTime, err := service.Feed(timeUnix, 30)
+	videoList, _, err := service.Feed(timeUnix, 30)
 	if err != nil {
 		c.JSON(http.StatusOK, FeedResponse{
 			Response:  Response{StatusCode: 1, StatusMsg: "视频流读取失败"},
@@ -45,6 +45,6 @@ func Feed(c *gin.Context) {
 	c.JSON(http.StatusOK, FeedResponse{
 		Response:  Response{StatusCode: 0},
 		VideoList: videoVOList,
-		NextTime:  nextTime,
+		NextTime:  time.Now().Unix(),
 	})
 }

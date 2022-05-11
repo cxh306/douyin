@@ -21,8 +21,8 @@ var usersLoginInfo = map[string]*UserVO{
 		FollowerCount: 0,
 		IsFollow:      false,
 	},
-	"cxhyui$2a$10$CBgjkPMcKrxyOtQedzrYyuxw7Cu2tUfn8g6GZAyKCJ3TspFjH/rwO": &UserVO{
-		Id:            2,
+	"cxy$2a$10$CBgjkPMcKrxyOtQedzrYyuxw7Cu2tUfn8g6GZAyKCJ3TspFjH/rwO": &UserVO{
+		Id:            3,
 		Name:          "cxy",
 		FollowCount:   0,
 		FollowerCount: 0,
