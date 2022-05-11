@@ -1,0 +1,10 @@
+POST http://localhost:8080/douyin/user/register?username=cxh&password=123456
+Content-Type: application/x-www-form-urlencoded
+
+###
+POST http://localhost:8080/douyin/user/login?username=cxh&password=123456
+Content-Type: application/x-www-form-urlencoded
+
+###
+POST http://localhost:8080/douyin/user/register?latest_time
+Content-Type: application/x-www-form-urlencoded
