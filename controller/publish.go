@@ -58,6 +58,7 @@ func PublishList(c *gin.Context) {
 			StatusCode: 1,
 			StatusMsg:  "用户未登陆",
 		})
+		return
 	}
 	videoList, errVideo := service.PublisList(user.Id)
 	if errVideo != nil {
@@ -65,6 +66,7 @@ func PublishList(c *gin.Context) {
 			StatusCode: 1,
 			StatusMsg:  "视频错误",
 		})
+		return
 	}
 	videoVOList := make([]VideoVO, len(videoList))
 	userVO := *user

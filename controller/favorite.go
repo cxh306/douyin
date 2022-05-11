@@ -1,15 +1,20 @@
 package controller
 
 import (
+	"douyin/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 )
 
 // FavoriteAction no practical effect, just check if token is valid
 func FavoriteAction(c *gin.Context) {
+	userId, _ := strconv.ParseInt(c.Query("user_id"), 10, 64)
 	token := c.Query("token")
-
-	if _, exist := usersLoginInfo[token]; exist {
+	videoId, _ := strconv.ParseInt(c.Query("video_id"), 10, 64)
+	actionType, _ := strconv.Atoi(c.Query("action_type"))
+	status := service.FavoriteAction(userId, token, videoId, actionType)
+	if _, exist := usersLoginInfo[token]; exist && status == 0 {
 		c.JSON(http.StatusOK, Response{StatusCode: 0})
 	} else {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})

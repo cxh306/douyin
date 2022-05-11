@@ -9,7 +9,26 @@ import (
 // usersLoginInfo use map to store user info, and key is username+password for demo
 // user data will be cleared every time the server starts
 // test data: username=zhanglei, password=douyin
-var usersLoginInfo = map[string]*UserVO{}
+
+/**
+默认登陆2个用户
+*/
+var usersLoginInfo = map[string]*UserVO{
+	"cxh$2a$10$AJuzrwWkhR.jUqzYQkt1seng.G5fDB./RJqrIQhmD0NCrxNDc6z1O": &UserVO{
+		Id:            1,
+		Name:          "cxh",
+		FollowCount:   0,
+		FollowerCount: 0,
+		IsFollow:      false,
+	},
+	"cxhyui$2a$10$CBgjkPMcKrxyOtQedzrYyuxw7Cu2tUfn8g6GZAyKCJ3TspFjH/rwO": &UserVO{
+		Id:            2,
+		Name:          "cxy",
+		FollowCount:   0,
+		FollowerCount: 0,
+		IsFollow:      false,
+	},
+}
 
 type UserLoginResponse struct {
 	Response
