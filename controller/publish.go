@@ -59,30 +59,17 @@ func PublishList(c *gin.Context) {
 			StatusMsg:  "用户未登陆",
 		})
 	}
-	videoModelList, errVideo := service.NewVideoService().FindVideoListByUserId(user.Id)
-	userModel, errUser := service.NewUserService().FindById(user.Id)
+	videoList, errVideo := service.PublisList(user.Id)
 	if errVideo != nil {
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
 			StatusMsg:  "视频错误",
 		})
 	}
-	if errUser != nil {
-		c.JSON(http.StatusOK, Response{
-			StatusCode: 1,
-			StatusMsg:  "用户错误",
-		})
-	}
-	videoVOList := make([]VideoVO, len(videoModelList))
-	userVO := UserVO{
-		Id:            userModel.Id,
-		Name:          userModel.Name,
-		FollowCount:   userModel.FollowCount,
-		FollowerCount: userModel.FollowerCount,
-		IsFollow:      false,
-	}
-	for _, video := range videoModelList {
-		videoVOList = append(videoVOList, VideoVO{
+	videoVOList := make([]VideoVO, len(videoList))
+	userVO := *user
+	for i, video := range videoList {
+		videoVOList[i] = VideoVO{
 			Id:            video.Id,
 			Author:        userVO,
 			PlayUrl:       video.PlayUrl,
@@ -90,7 +77,7 @@ func PublishList(c *gin.Context) {
 			FavoriteCount: video.FavoriteCount,
 			CommentCount:  video.CommentCount,
 			IsFavorite:    false,
-		})
+		}
 	}
 
 	c.JSON(http.StatusOK, VideoListResponse{
