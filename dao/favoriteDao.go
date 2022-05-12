@@ -27,7 +27,7 @@ func NewFavoriteDaoInstance() *FavoriteDao {
 }
 
 func (f *FavoriteDao) SelectFavoriteByUserId(userId int64) ([]*Video, error) {
-	var videos = []*Video{}
+	var videos []*Video
 	err := db.Table("favorite").
 		Select("video.id as id, video.play_url as play_url,video.cover_url as cover_url,video.favorite_count as favorite_count,video.comment_count as comment_count,video.is_favorite as is_favorite").
 		Joins("left join video on favorite.video_id = video.id where favorite.user_id=?", userId).Scan(&videos).Error

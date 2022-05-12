@@ -17,7 +17,7 @@ func FavoriteAction(c *gin.Context) {
 	userId := usersLoginInfo[token].Id
 	videoId, _ := strconv.ParseInt(c.Query("video_id"), 10, 64)
 	actionType, _ := strconv.Atoi(c.Query("action_type"))
-	status := service.FavoriteAction(userId, token, videoId, actionType)
+	status := service.FavoriteAction(userId, videoId, actionType)
 	if status != 0 {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞出错"})
 	} else {
@@ -29,7 +29,7 @@ func FavoriteAction(c *gin.Context) {
 func FavoriteList(c *gin.Context) {
 	token := c.Query("token")
 	user, exist := usersLoginInfo[token]
-	favorites, err := service.FavoriteList(user.Id, token)
+	favorites, err := service.FavoriteList(user.Id)
 
 	videoList := make([]VideoVO, len(favorites))
 	for i, v := range favorites {
