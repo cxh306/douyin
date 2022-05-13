@@ -1,6 +1,7 @@
 package service
 
 import (
+	"douyin/common"
 	"douyin/dao"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -25,7 +26,7 @@ func Login(username, password string) (int64, string, error) {
 	return NewLoginFlow(username, password).Do()
 }
 
-func UserInfo(id int64) (*dao.User, error) {
+func UserInfo(id int64) (*common.User, error) {
 	return NewUserInfoFlow(id).Do()
 }
 
@@ -117,15 +118,15 @@ UserInfo
 type UserInfoFlow struct {
 	id int64
 
-	user dao.User
+	user common.User
 }
 
-func (f *UserInfoFlow) Do() (*dao.User, error) {
+func (f *UserInfoFlow) Do() (*common.User, error) {
 	user, err := dao.NewUserDaoInstance().QueryUserById(f.id)
 	if err != nil {
 		return nil, err
 	}
-	return &dao.User{
+	return &common.User{
 		Id:            user.Id,
 		Name:          user.Name,
 		FollowCount:   user.FollowerCount,

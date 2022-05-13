@@ -68,6 +68,13 @@ func (*RelationDao) UpdateRelation(userId int64, toUserId int64, actionType int)
 func (*RelationDao) SelectFollowList(userId int64) ([]common.User, error) {
 	var followList []common.User
 	err := db.Table("relation").Select("relation.to_user_id,user.name,user.follow_count,user.follower_count,user.is_follow").
-		Joins("join user on relation.user_id =? and relation.to_user_id=user.id", userId).Find(&followList).Error
+		Joins("join user on relation.to_user_id=user.id where relation.user_id =?", userId).Find(&followList).Error
 	return followList, err
+}
+
+func (*RelationDao) SelectFollowerList(userId int64) ([]common.User, error) {
+	var followerList []common.User
+	err := db.Table("relation").Select("relation.user_id,user.name,user.follow_count,user.follower_count,user.is_follow").
+		Joins("join user on relation.user_id=user.id where relation.to_user_id=?", userId).Find(&followerList).Error
+	return followerList, err
 }

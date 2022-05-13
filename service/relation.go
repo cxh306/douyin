@@ -55,3 +55,26 @@ func (f *FollowListFlow) Do() ([]common.User, error) {
 	f.followList, err = dao.NewRelationDaoInstance().SelectFollowList(f.UserId)
 	return f.followList, err
 }
+
+/**
+FollowerList
+*/
+
+func FollowerList(userId int64) ([]common.User, error) {
+	return NewFollowerListFlow(userId).Do()
+}
+
+type FollowerListFlow struct {
+	UserId int64
+
+	followerList []common.User
+}
+
+func NewFollowerListFlow(userId int64) *FollowerListFlow {
+	return &FollowerListFlow{UserId: userId}
+}
+func (f *FollowerListFlow) Do() ([]common.User, error) {
+	var err error
+	f.followerList, err = dao.NewRelationDaoInstance().SelectFollowerList(f.UserId)
+	return f.followerList, err
+}

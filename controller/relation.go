@@ -51,10 +51,20 @@ func FollowList(c *gin.Context) {
 
 // FollowerList all users have same follower list
 func FollowerList(c *gin.Context) {
-	c.JSON(http.StatusOK, UserListResponse{
-		Response: common.Response{
-			StatusCode: 0,
-		},
-		UserList: []common.User{},
-	})
+	token := c.Query("token")
+	if user, exist := usersLoginInfo[token]; exist {
+		followerList, err := service.FollowerList(user.Id)
+		if err != nil {
+			c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "粉丝列表出错"})
+		} else {
+			c.JSON(http.StatusOK, UserListResponse{
+				Response: common.Response{
+					StatusCode: 0,
+				},
+				UserList: followerList,
+			})
+		}
+	} else {
+		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+	}
 }
