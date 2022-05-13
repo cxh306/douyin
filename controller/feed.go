@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"douyin/common"
 	"douyin/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -9,9 +10,9 @@ import (
 )
 
 type FeedResponse struct {
-	Response
-	VideoList []VideoVO `json:"video_list,omitempty"`
-	NextTime  int64     `json:"next_time,omitempty"`
+	common.Response
+	VideoList []common.Video `json:"video_list,omitempty"`
+	NextTime  int64          `json:"next_time,omitempty"`
 }
 
 // Feed same demo video list for every request
@@ -21,15 +22,15 @@ func Feed(c *gin.Context) {
 	videoList, _, err := service.Feed(timeUnix, 30)
 	if err != nil {
 		c.JSON(http.StatusOK, FeedResponse{
-			Response:  Response{StatusCode: 1, StatusMsg: "视频流读取失败"},
-			VideoList: []VideoVO{},
+			Response:  common.Response{StatusCode: 1, StatusMsg: "视频流读取失败"},
+			VideoList: []common.Video{},
 			NextTime:  time.Now().Unix(),
 		})
 	}
-	videoVOList := make([]VideoVO, len(videoList))
+	videoVOList := make([]common.Video, len(videoList))
 	for i, videoInfo := range videoList {
 		videoVOList[i].Id = videoInfo.Video.Id
-		videoVOList[i].Author = UserVO{
+		videoVOList[i].Author = common.User{
 			Id:            videoInfo.User.Id,
 			Name:          videoInfo.User.Name,
 			FollowCount:   videoInfo.User.FollowCount,
@@ -43,7 +44,7 @@ func Feed(c *gin.Context) {
 		videoVOList[i].IsFavorite = videoInfo.Video.IsFavorite
 	}
 	c.JSON(http.StatusOK, FeedResponse{
-		Response:  Response{StatusCode: 0},
+		Response:  common.Response{StatusCode: 0},
 		VideoList: videoVOList,
 		NextTime:  time.Now().Unix(),
 	})

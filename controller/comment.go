@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"douyin/common"
 	"douyin/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -8,8 +9,8 @@ import (
 )
 
 type CommentListResponse struct {
-	Response
-	CommentList []CommentVO `json:"comment_list,omitempty"`
+	common.Response
+	CommentList []common.Comment `json:"comment_list,omitempty"`
 }
 
 // CommentAction no practical effect, just check if token is valid
@@ -24,12 +25,12 @@ func CommentAction(c *gin.Context) {
 	if _, exist := usersLoginInfo[token]; exist {
 		userId = usersLoginInfo[token].Id
 		if err := service.CommentAction(id, userId, videoId, actionType, commentText); err == nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 0})
+			c.JSON(http.StatusOK, common.Response{StatusCode: 0})
 		} else {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论更新失败"})
+			c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "评论更新失败"})
 		}
 	} else {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "用户不存在"})
+		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "用户不存在"})
 	}
 }
 
@@ -41,14 +42,14 @@ func CommentList(c *gin.Context) {
 	if _, exist := usersLoginInfo[token]; exist {
 		result, err := service.CommentList(videoId)
 		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1})
+			c.JSON(http.StatusOK, common.Response{StatusCode: 1})
 		} else {
-			commentList := make([]CommentVO, len(result))
+			commentList := make([]common.Comment, len(result))
 			for i, v := range result {
 				commentList[i].Id = v.Id
 				commentList[i].Content = v.Content
 				commentList[i].CreateDate = v.CreateTime
-				commentList[i].User = UserVO{
+				commentList[i].User = common.User{
 					Id:            v.User.Id,
 					Name:          v.User.Name,
 					FollowCount:   v.User.FollowCount,
@@ -57,11 +58,11 @@ func CommentList(c *gin.Context) {
 				}
 			}
 			c.JSON(http.StatusOK, CommentListResponse{
-				Response:    Response{StatusCode: 0},
+				Response:    common.Response{StatusCode: 0},
 				CommentList: commentList,
 			})
 		}
 	} else {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "用户不存在"})
+		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "用户不存在"})
 	}
 }

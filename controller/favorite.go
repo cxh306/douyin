@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"douyin/common"
 	"douyin/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -11,7 +12,7 @@ import (
 func FavoriteAction(c *gin.Context) {
 	token := c.Query("token")
 	if _, exist := usersLoginInfo[token]; !exist {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "用户未登陆"})
+		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "用户未登陆"})
 		return
 	}
 	userId := usersLoginInfo[token].Id
@@ -19,9 +20,9 @@ func FavoriteAction(c *gin.Context) {
 	actionType, _ := strconv.Atoi(c.Query("action_type"))
 	status := service.FavoriteAction(userId, videoId, actionType)
 	if status != 0 {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞出错"})
+		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "点赞出错"})
 	} else {
-		c.JSON(http.StatusOK, Response{StatusCode: 0})
+		c.JSON(http.StatusOK, common.Response{StatusCode: 0})
 	}
 }
 
@@ -31,10 +32,10 @@ func FavoriteList(c *gin.Context) {
 	user, exist := usersLoginInfo[token]
 	favorites, err := service.FavoriteList(user.Id)
 
-	videoList := make([]VideoVO, len(favorites))
+	videoList := make([]common.Video, len(favorites))
 	for i, v := range favorites {
 		videoList[i].Id = v.Id
-		videoList[i].Author = UserVO{
+		videoList[i].Author = common.User{
 			Id:            user.Id,
 			Name:          user.Name,
 			FollowCount:   user.FollowCount,
@@ -49,18 +50,18 @@ func FavoriteList(c *gin.Context) {
 	}
 	if exist && err == nil {
 		c.JSON(http.StatusOK, VideoListResponse{
-			Response: Response{
+			Response: common.Response{
 				StatusCode: 0,
 			},
 			VideoList: videoList,
 		})
 	} else {
 		c.JSON(http.StatusOK, VideoListResponse{
-			Response: Response{
+			Response: common.Response{
 				StatusCode: 1,
 				StatusMsg:  "点赞视频列表出错",
 			},
-			VideoList: []VideoVO{},
+			VideoList: []common.Video{},
 		})
 	}
 }

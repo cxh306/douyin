@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"douyin/common"
 	"douyin/service"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -9,8 +10,8 @@ import (
 )
 
 type VideoListResponse struct {
-	Response
-	VideoList []VideoVO `json:"video_list"`
+	common.Response
+	VideoList []common.Video `json:"video_list"`
 }
 
 // Publish check token then save upload file to public directory
@@ -18,13 +19,13 @@ func Publish(c *gin.Context) {
 	token := c.Query("token")
 
 	if _, exist := usersLoginInfo[token]; !exist {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
 		return
 	}
 
 	data, err := c.FormFile("data")
 	if err != nil {
-		c.JSON(http.StatusOK, Response{
+		c.JSON(http.StatusOK, common.Response{
 			StatusCode: 1,
 			StatusMsg:  err.Error(),
 		})
@@ -36,14 +37,14 @@ func Publish(c *gin.Context) {
 	finalName := fmt.Sprintf("%d_%s", user.Id, filename)
 	saveFile := filepath.Join("./public/", finalName)
 	if err := c.SaveUploadedFile(data, saveFile); err != nil {
-		c.JSON(http.StatusOK, Response{
+		c.JSON(http.StatusOK, common.Response{
 			StatusCode: 1,
 			StatusMsg:  err.Error(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, Response{
+	c.JSON(http.StatusOK, common.Response{
 		StatusCode: 0,
 		StatusMsg:  finalName + " uploaded successfully",
 	})
@@ -54,7 +55,7 @@ func PublishList(c *gin.Context) {
 	token := c.Query("token")
 	user, exist := usersLoginInfo[token]
 	if !exist {
-		c.JSON(http.StatusOK, Response{
+		c.JSON(http.StatusOK, common.Response{
 			StatusCode: 1,
 			StatusMsg:  "用户未登陆",
 		})
@@ -62,16 +63,16 @@ func PublishList(c *gin.Context) {
 	}
 	videoList, errVideo := service.PublisList(user.Id)
 	if errVideo != nil {
-		c.JSON(http.StatusOK, Response{
+		c.JSON(http.StatusOK, common.Response{
 			StatusCode: 1,
 			StatusMsg:  "视频错误",
 		})
 		return
 	}
-	videoVOList := make([]VideoVO, len(videoList))
+	videoVOList := make([]common.Video, len(videoList))
 	userVO := *user
 	for i, video := range videoList {
-		videoVOList[i] = VideoVO{
+		videoVOList[i] = common.Video{
 			Id:            video.Id,
 			Author:        userVO,
 			PlayUrl:       video.PlayUrl,
@@ -83,7 +84,7 @@ func PublishList(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, VideoListResponse{
-		Response: Response{
+		Response: common.Response{
 			StatusCode: 0,
 		},
 		VideoList: videoVOList,

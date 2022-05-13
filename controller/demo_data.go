@@ -1,6 +1,8 @@
 package controller
 
-var DemoVideos = []VideoVO{
+import "douyin/common"
+
+var DemoVideos = []common.Video{
 	{
 		Id:            1,
 		Author:        DemoUser,
@@ -12,7 +14,7 @@ var DemoVideos = []VideoVO{
 	},
 }
 
-var DemoComments = []CommentVO{
+var DemoComments = []common.Comment{
 	{
 		Id:         1,
 		User:       DemoUser,
@@ -21,7 +23,7 @@ var DemoComments = []CommentVO{
 	},
 }
 
-var DemoUser = UserVO{
+var DemoUser = common.User{
 	Id:            1,
 	Name:          "cxh",
 	FollowCount:   0,

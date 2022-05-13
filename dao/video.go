@@ -73,6 +73,7 @@ func (v *VideoDao) SelectById(id int64) ([]*Video, error) {
 }
 
 func (v *VideoDao) UpdateFavoriteById(userId int64, videoId int64, actionType int) error {
+	db.Begin()
 	var str string
 	if actionType == 1 {
 		str = "+"
@@ -80,16 +81,20 @@ func (v *VideoDao) UpdateFavoriteById(userId int64, videoId int64, actionType in
 		str = "-"
 	}
 	if err := db.Table("video").Where("id = ?", videoId).Update("favorite_count", gorm.Expr("favorite_count"+str+"?", 1)).Error; err != nil {
+		db.Rollback()
 		return err
 	}
 	if actionType == 1 {
 		if err := NewFavoriteDaoInstance().CreateInstance(userId, videoId); err != nil {
+			db.Rollback()
 			return err
 		}
 	} else {
 		if err := NewFavoriteDaoInstance().DeleteInstance(userId, videoId); err != nil {
+			db.Rollback()
 			return err
 		}
 	}
+	db.Commit()
 	return nil
 }
