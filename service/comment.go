@@ -42,10 +42,6 @@ func (f *CommentActionFlow) Do() error {
 CommentList
 */
 
-func CommentList(userId int64) ([]*dao.Video, error) {
-	return NewCommentListFlow(userId).Do()
-}
-
 type User struct {
 	Id            int64
 	Name          string
@@ -67,16 +63,33 @@ type CommentListFlow struct {
 	CommentList []*Comment
 }
 
+func CommentList(videoId int64) ([]Comment, error) {
+	return NewCommentListFlow(videoId).Do()
+}
+
 func NewCommentListFlow(videoId int64) *CommentListFlow {
 	return &CommentListFlow{
 		VideoId: videoId,
 	}
 }
 
-func (f *CommentListFlow) Do() ([]*Comment, error) {
-	comments, err := dao.NewCommentDaoInstance().SelectCommentList(f.VideoId)
+func (f *CommentListFlow) Do() ([]Comment, error) {
+	result, err := dao.NewCommentDaoInstance().SelectCommentList(f.VideoId)
+	commentList := make([]Comment, len(result))
+	for i, v := range result {
+		commentList[i].Id = v.Id
+		commentList[i].Content = v.CommentText
+		commentList[i].CreateTime = v.CreateTime.Format("01-02")
+		commentList[i].User = User{
+			Id:            v.UserId,
+			Name:          v.Name,
+			FollowCount:   v.FollowCount,
+			FollowerCount: v.FollowerCount,
+			IsFollow:      v.IsFollow,
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
-	return favorites, nil
+	return commentList, nil
 }

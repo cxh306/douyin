@@ -35,8 +35,33 @@ func CommentAction(c *gin.Context) {
 
 // CommentList all videos have same demo comment list
 func CommentList(c *gin.Context) {
-	c.JSON(http.StatusOK, CommentListResponse{
-		Response:    Response{StatusCode: 0},
-		CommentList: []CommentVO{},
-	})
+	videoId, _ := strconv.ParseInt(c.Query("video_id"), 10, 64)
+	token := c.Query("token")
+
+	if _, exist := usersLoginInfo[token]; exist {
+		result, err := service.CommentList(videoId)
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1})
+		} else {
+			commentList := make([]CommentVO, len(result))
+			for i, v := range result {
+				commentList[i].Id = v.Id
+				commentList[i].Content = v.Content
+				commentList[i].CreateDate = v.CreateTime
+				commentList[i].User = UserVO{
+					Id:            v.User.Id,
+					Name:          v.User.Name,
+					FollowCount:   v.User.FollowCount,
+					FollowerCount: v.User.FollowerCount,
+					IsFollow:      v.User.IsFollow,
+				}
+			}
+			c.JSON(http.StatusOK, CommentListResponse{
+				Response:    Response{StatusCode: 0},
+				CommentList: commentList,
+			})
+		}
+	} else {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "用户不存在"})
+	}
 }
