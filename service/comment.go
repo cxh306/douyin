@@ -10,7 +10,7 @@ var CommentService *CommentServiceImpl
 var commentOnce sync.Once
 
 func NewCommentServiceInstance() *CommentServiceImpl {
-	favoriteOnce.Do(
+	commentOnce.Do(
 		func() {
 			CommentService = &CommentServiceImpl{}
 		})
