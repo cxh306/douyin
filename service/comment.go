@@ -1,95 +1,71 @@
 package service
 
-import "douyin/dao"
+import (
+	"douyin/common"
+	"douyin/dao"
+	"sync"
+)
 
-/**
-CommentAction
-*/
-func CommentAction(id int64, userId int64, videoId int64, actionType int, commentText string) error {
-	return NewCommentActionFlow(id, userId, videoId, actionType, commentText).Do()
+var CommentService *CommentServiceImpl
+var commentOnce sync.Once
+
+func NewCommentServiceInstance() *CommentServiceImpl {
+	favoriteOnce.Do(
+		func() {
+			CommentService = &CommentServiceImpl{}
+		})
+	return CommentService
 }
 
-type CommentActionFlow struct {
-	Id          int64
-	UserId      int64
-	VideoId     int64
-	ActionType  int
-	CommentText string
-
-	Status int
+type CommentServiceImpl struct {
 }
 
-func NewCommentActionFlow(id int64, userId int64, videoId int64, actionType int, commentText string) *CommentActionFlow {
-	return &CommentActionFlow{Id: id, UserId: userId, VideoId: videoId, ActionType: actionType, CommentText: commentText}
-}
-func (f *CommentActionFlow) Do() error {
-	var err error
-	if f.ActionType == 1 {
-		err = dao.NewCommentDaoInstance().CreateInstance(f.UserId, f.VideoId, f.CommentText)
-	} else {
-		err = dao.NewCommentDaoInstance().DeleteInstance(f.Id)
+func (f *CommentServiceImpl) Action(req common.CommentActionReq) common.CommentActionResp {
+	resp := common.CommentActionResp{}
+	if err := dao.CommentAction(req.UserId, req.VideoId, req.ActionType, req.CommentText); err != nil {
+		resp.StatusCode = 1
+		resp.StatusMsg = "评论错误"
 	}
+	return resp
+}
+
+func (f *CommentServiceImpl) List(req common.CommentListReq) common.CommentListResp {
+	resp := common.CommentListResp{}
+	videoId := req.VideoId
+	cl, err := dao.NewCommentDaoInstance().SelectCommentList(videoId)
 	if err != nil {
-		//更新失败
-		return err
-	} else {
-		//更新成功
-		return nil
+		resp.StatusCode = 1
+		resp.StatusMsg = "评论列表出错"
+		return resp
 	}
-}
-
-/**
-CommentList
-*/
-
-type User struct {
-	Id            int64
-	Name          string
-	FollowCount   int64
-	FollowerCount int64
-	IsFollow      bool
-}
-
-type Comment struct {
-	Id         int64
-	User       User
-	Content    string
-	CreateTime string
-}
-
-type CommentListFlow struct {
-	VideoId int64
-
-	CommentList []*Comment
-}
-
-func CommentList(videoId int64) ([]Comment, error) {
-	return NewCommentListFlow(videoId).Do()
-}
-
-func NewCommentListFlow(videoId int64) *CommentListFlow {
-	return &CommentListFlow{
-		VideoId: videoId,
-	}
-}
-
-func (f *CommentListFlow) Do() ([]Comment, error) {
-	result, err := dao.NewCommentDaoInstance().SelectCommentList(f.VideoId)
-	commentList := make([]Comment, len(result))
-	for i, v := range result {
-		commentList[i].Id = v.Id
-		commentList[i].Content = v.CommentText
-		commentList[i].CreateTime = v.CreateTime.Format("01-02")
-		commentList[i].User = User{
-			Id:            v.UserId,
-			Name:          v.Name,
-			FollowCount:   v.FollowCount,
-			FollowerCount: v.FollowerCount,
-			IsFollow:      v.IsFollow,
+	comments := make([]common.Comment, len(cl))
+	for i := range cl {
+		user, err := dao.NewUserDaoInstance().QueryUserById(cl[i].UserId)
+		if err != nil {
+			resp.StatusCode = 1
+			resp.StatusMsg = "评论列表出错"
+			return resp
 		}
+
+		author := common.User{}
+		author.Id = user.Id
+		author.Name = user.Name
+		author.FollowCount = user.FollowCount
+		author.FollowerCount = user.FollowerCount
+		isRelation, err1 := dao.NewRelationDaoInstance().IsRelation(req.UserId, user.Id)
+		if err1 != nil {
+			resp.StatusCode = 1
+			resp.StatusMsg = "评论列表出错"
+			return resp
+		}
+		if isRelation == 1 || user.Id == req.UserId {
+			author.IsFollow = true
+		}
+		comments[i].Id = cl[i].Id
+		comments[i].User = author
+		comments[i].Content = cl[i].CommentText
+		comments[i].CreateDate = cl[i].CreateTime.Format("01-02")
 	}
-	if err != nil {
-		return nil, err
-	}
-	return commentList, nil
+	resp.CommentList = comments
+	return resp
 }

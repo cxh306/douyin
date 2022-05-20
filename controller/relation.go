@@ -2,69 +2,93 @@ package controller
 
 import (
 	"douyin/common"
+	"douyin/huancun"
 	"douyin/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 )
 
-type UserListResponse struct {
-	common.Response
-	UserList []common.User `json:"user_list"`
-}
-
 // RelationAction no practical effect, just check if token is valid
 func RelationAction(c *gin.Context) {
 	token := c.Query("token")
-	toUserId, _ := strconv.ParseInt(c.Query("to_user_id"), 10, 64)
-	actionType, _ := strconv.Atoi(c.Query("action_type"))
-	if user, exist := usersLoginInfo[token]; exist {
-		err := service.RelationAction(user.Id, toUserId, actionType)
-		if err != nil {
-			c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "关注出错"})
-		}
-		c.JSON(http.StatusOK, common.Response{StatusCode: 0})
-	} else {
-		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+	//followerId,_ := strconv.ParseInt(c.Query("user_id"),10,64)
+	followeeId, _ := strconv.ParseInt(c.Query("to_user_id"), 10, 64)
+	actionType, _ := strconv.ParseInt(c.Query("action_type"), 10, 64)
+	user, exist := huancun.UsersLoginInfo[token]
+	if !exist {
+		c.JSON(http.StatusOK, common.Response{
+			StatusCode: 1,
+			StatusMsg:  "用户未登陆",
+		})
+		return
 	}
+
+	//if followerId != user.Id{
+	//	c.JSON(http.StatusOK,common.Response{
+	//		StatusCode: 1,
+	//		StatusMsg: "请求非法",
+	//	})
+	//	return
+	//}
+	req := common.RelationActionReq{}
+	req.FollowerId = user.Id
+	req.FolloweeId = followeeId
+	req.ActionType = int32(actionType)
+	req.Token = token
+	c.JSON(http.StatusOK, service.NewRelationServiceInstance().Action(req))
 }
 
 // FollowList all users have same follow list
 func FollowList(c *gin.Context) {
 	token := c.Query("token")
-	if user, exist := usersLoginInfo[token]; exist {
-		followList, err := service.FollowList(user.Id)
-		if err != nil {
-			c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "关注列表出错"})
-		} else {
-			c.JSON(http.StatusOK, UserListResponse{
-				Response: common.Response{
-					StatusCode: 0,
-				},
-				UserList: followList,
-			})
-		}
-	} else {
-		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+	//userId,_ := strconv.ParseInt(c.Query("user_id"),10,64)
+	user, exist := huancun.UsersLoginInfo[token]
+	if !exist {
+		c.JSON(http.StatusOK, common.Response{
+			StatusCode: 1,
+			StatusMsg:  "关注列表错误",
+		})
+		return
 	}
+
+	//if userId!=user.Id {
+	//	c.JSON(http.StatusOK,common.Response{
+	//		StatusCode: 1,
+	//		StatusMsg: "请求非法",
+	//	})
+	//	return
+	//}
+	req := common.FollowListReq{
+		UserId: user.Id,
+		Token:  token,
+	}
+	c.JSON(http.StatusOK, service.NewRelationServiceInstance().FolloweeList(req))
 }
 
 // FollowerList all users have same follower list
 func FollowerList(c *gin.Context) {
 	token := c.Query("token")
-	if user, exist := usersLoginInfo[token]; exist {
-		followerList, err := service.FollowerList(user.Id)
-		if err != nil {
-			c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "粉丝列表出错"})
-		} else {
-			c.JSON(http.StatusOK, UserListResponse{
-				Response: common.Response{
-					StatusCode: 0,
-				},
-				UserList: followerList,
-			})
-		}
-	} else {
-		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+	//userId,_ := strconv.ParseInt(c.Query("user_id"),10,64)
+	user, exist := huancun.UsersLoginInfo[token]
+	if !exist {
+		c.JSON(http.StatusOK, common.Response{
+			StatusCode: 1,
+			StatusMsg:  "关注列表错误",
+		})
+		return
 	}
+
+	//if userId!=user.Id {
+	//	c.JSON(http.StatusOK,common.Response{
+	//		StatusCode: 1,
+	//		StatusMsg: "请求非法",
+	//	})
+	//	return
+	//}
+	req := common.FollowListReq{
+		UserId: user.Id,
+		Token:  token,
+	}
+	c.JSON(http.StatusOK, service.NewRelationServiceInstance().FollowerList(req))
 }

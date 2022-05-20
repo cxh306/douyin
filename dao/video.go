@@ -14,7 +14,7 @@ type Video struct {
 	CoverUrl      string    `gorm:"column:cover_url"`
 	FavoriteCount int64     `gorm:"column:favorite_count"`
 	CommentCount  int64     `gorm:"column:comment_count"`
-	IsFavorite    bool      `gorm:"column:is_favorite"`
+	Title         string    `gorm:"column:title"`
 	CreateTime    time.Time `gorm:"column:create_time"`
 }
 
@@ -42,7 +42,6 @@ func (v *VideoDao) SelectListByUserId(userId int64) ([]*Video, error) {
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	} else if err != nil {
-		util.Logger.Error("find video by userId err:" + err.Error())
 		return nil, err
 	}
 	return video, nil
@@ -60,41 +59,48 @@ func (v *VideoDao) SelectListByLimit(time int64, limit int) ([]*Video, error) {
 	return video, nil
 }
 
-func (v *VideoDao) SelectById(id int64) ([]*Video, error) {
-	var video []*Video
+func (v *VideoDao) SelectById(id int64) (*Video, error) {
+	var video *Video
 	err := db.Where("id = ?", id).Find(&video).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	} else if err != nil {
-		util.Logger.Error("find video by userId err:" + err.Error())
 		return nil, err
 	}
 	return video, nil
 }
 
-func (v *VideoDao) UpdateFavoriteById(userId int64, videoId int64, actionType int) error {
-	db.Begin()
+func (v *VideoDao) SelectByIds(ids []int64) ([]*Video, error) {
+	var video []*Video
+	err := db.Where("id IN ?", ids).Find(&video).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return video, nil
+}
+
+func (v *VideoDao) UpdateFavoriteById(videoId int64, actionType int32) error {
 	var str string
 	if actionType == 1 {
 		str = "+"
 	} else {
 		str = "-"
 	}
-	if err := db.Table("video").Where("id = ?", videoId).Update("favorite_count", gorm.Expr("favorite_count"+str+"?", 1)).Error; err != nil {
-		db.Rollback()
-		return err
-	}
+	return db.Model(&Video{}).Where("id = ?", videoId).Update("favorite_count", gorm.Expr("favorite_count"+str+"?", 1)).Error
+}
+
+func (v *VideoDao) InsertVideo(video Video) error {
+	return db.Create(&video).Error
+}
+
+func (v *VideoDao) UpdateCommentCount(videoId int64, actionType int32) error {
+	var str string
 	if actionType == 1 {
-		if err := NewFavoriteDaoInstance().CreateInstance(userId, videoId); err != nil {
-			db.Rollback()
-			return err
-		}
+		str = "+"
 	} else {
-		if err := NewFavoriteDaoInstance().DeleteInstance(userId, videoId); err != nil {
-			db.Rollback()
-			return err
-		}
+		str = "-"
 	}
-	db.Commit()
-	return nil
+	return db.Model(&Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count"+str+"?", 1)).Error
 }

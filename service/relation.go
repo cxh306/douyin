@@ -3,78 +3,93 @@ package service
 import (
 	"douyin/common"
 	"douyin/dao"
+	"sync"
 )
 
-/**
-CommentAction
-*/
-func RelationAction(userId int64, toUserId int64, actionType int) error {
-	return NewRelationActionFlow(userId, toUserId, actionType).Do()
+var relationService *RelationServiceImpl
+var relationOnce sync.Once
+
+func NewRelationServiceInstance() *RelationServiceImpl {
+	relationOnce.Do(
+		func() {
+			relationService = &RelationServiceImpl{}
+		})
+	return relationService
 }
 
-type RelationActionFlow struct {
-	UserId     int64
-	ToUserId   int64
-	ActionType int
+type RelationServiceImpl struct {
 }
 
-func NewRelationActionFlow(userId int64, toUserId int64, actionType int) *RelationActionFlow {
-	return &RelationActionFlow{UserId: userId, ToUserId: toUserId, ActionType: actionType}
-}
-func (f *RelationActionFlow) Do() error {
-	var err error
-	err = dao.NewRelationDaoInstance().UpdateRelation(f.UserId, f.ToUserId, f.ActionType)
-	if err != nil {
-		//更新失败
-		return err
-	} else {
-		//更新成功
-		return nil
+func (f *RelationServiceImpl) Action(req common.RelationActionReq) common.RelationActionResp {
+	followerId := req.FollowerId
+	followeeId := req.FolloweeId
+	actionType := req.ActionType
+	resp := common.RelationActionResp{}
+	if err := dao.RelationAction(followerId, followeeId, actionType); err != nil {
+		resp.StatusCode = 1
+		resp.StatusMsg = "关注错误"
 	}
+	return resp
 }
 
-/**
-FollowList
-*/
-
-func FollowList(userId int64) ([]common.User, error) {
-	return NewFollowListFlow(userId).Do()
+func (f *RelationServiceImpl) FolloweeList(req common.FollowListReq) common.FollowListResp {
+	userId := req.UserId
+	relationList, err := dao.NewRelationDaoInstance().SelectFolloweeList(userId)
+	resp := common.FollowListResp{}
+	if err != nil {
+		resp.StatusCode = 1
+		resp.StatusMsg = "关注列表出错"
+		return resp
+	}
+	ul := make([]common.User, len(relationList))
+	for i := range relationList {
+		user, err := dao.NewUserDaoInstance().QueryUserById(relationList[i].ToUserId)
+		if err != nil {
+			resp.StatusCode = 1
+			resp.StatusMsg = "关注列表出错"
+			return resp
+		}
+		ul[i].Id = user.Id
+		ul[i].Name = user.Name
+		ul[i].FollowCount = user.FollowCount
+		ul[i].FollowerCount = user.FollowerCount
+		ul[i].IsFollow = true
+	}
+	resp.UserList = ul
+	return resp
 }
 
-type FollowListFlow struct {
-	UserId int64
-
-	followList []common.User
-}
-
-func NewFollowListFlow(userId int64) *FollowListFlow {
-	return &FollowListFlow{UserId: userId}
-}
-func (f *FollowListFlow) Do() ([]common.User, error) {
-	var err error
-	f.followList, err = dao.NewRelationDaoInstance().SelectFollowList(f.UserId)
-	return f.followList, err
-}
-
-/**
-FollowerList
-*/
-
-func FollowerList(userId int64) ([]common.User, error) {
-	return NewFollowerListFlow(userId).Do()
-}
-
-type FollowerListFlow struct {
-	UserId int64
-
-	followerList []common.User
-}
-
-func NewFollowerListFlow(userId int64) *FollowerListFlow {
-	return &FollowerListFlow{UserId: userId}
-}
-func (f *FollowerListFlow) Do() ([]common.User, error) {
-	var err error
-	f.followerList, err = dao.NewRelationDaoInstance().SelectFollowerList(f.UserId)
-	return f.followerList, err
+func (f *RelationServiceImpl) FollowerList(req common.FollowListReq) common.FollowListResp {
+	userId := req.UserId
+	relationList, err := dao.NewRelationDaoInstance().SelectFollowerList(userId)
+	resp := common.FollowListResp{}
+	if err != nil {
+		resp.StatusCode = 1
+		resp.StatusMsg = "粉丝列表出错"
+		return resp
+	}
+	ul := make([]common.User, len(relationList))
+	for i := range relationList {
+		user, err := dao.NewUserDaoInstance().QueryUserById(relationList[i].UserId)
+		if err != nil {
+			resp.StatusCode = 1
+			resp.StatusMsg = "关注列表出错"
+			return resp
+		}
+		ul[i].Id = user.Id
+		ul[i].Name = user.Name
+		ul[i].FollowCount = user.FollowCount
+		ul[i].FollowerCount = user.FollowerCount
+		isRelation, err := dao.NewRelationDaoInstance().IsRelation(userId, user.Id)
+		if err != nil {
+			resp.StatusCode = 1
+			resp.StatusMsg = "关注列表出错"
+			return resp
+		}
+		if isRelation == 1 {
+			ul[i].IsFollow = true
+		}
+	}
+	resp.UserList = ul
+	return resp
 }

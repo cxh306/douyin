@@ -1,15 +1,13 @@
 package dao
 
 import (
-	"douyin/common"
-	"gorm.io/gorm"
 	"sync"
 )
 
 type Relation struct {
 	Id       int64 `gorm:"column:id"`
-	UserId   int64 `gorm:"column:user_id"`
-	toUserId int64 `gorm:"column:to_user_id"`
+	UserId   int64 `gorm:"column:follower_id"`
+	ToUserId int64 `gorm:"column:followee_id"`
 }
 
 func (Relation) TableName() string {
@@ -30,51 +28,32 @@ func NewRelationDaoInstance() *RelationDao {
 	return relationDao
 }
 
-func (*RelationDao) UpdateRelation(userId int64, toUserId int64, actionType int) error {
-	db.Begin()
-	var str string
-	if actionType == 1 {
-		str = "+"
-	} else {
-		str = "-"
-	}
-	if actionType == 1 {
-		if err := db.Table("relation").Model(Relation{}).Create(map[string]interface{}{
-			"user_id":    userId,
-			"to_user_Id": toUserId,
-		}).Error; err != nil {
-			db.Rollback()
-			return err
-		}
-	} else {
-		if err := db.Table("relation").Where("user_id = ? and to_user_id= ?", userId, toUserId).Delete(&Relation{}).Error; err != nil {
-			db.Rollback()
-			return err
-		}
-	}
-
-	if err := db.Table("user").Where("id = ?", userId).Update("follow_count", gorm.Expr("follow_count"+str+"?", 1)).Error; err != nil {
-		db.Rollback()
-		return err
-	}
-	if err := db.Table("user").Where("id = ?", toUserId).Update("follower_count", gorm.Expr("follower_count"+str+"?", 1)).Error; err != nil {
-		db.Rollback()
-		return err
-	}
-	db.Commit()
-	return nil
+func (*RelationDao) DeleteRelation(relation Relation) error {
+	return db.Delete(&relation).Error
 }
 
-func (*RelationDao) SelectFollowList(userId int64) ([]common.User, error) {
-	var followList []common.User
-	err := db.Table("relation").Select("relation.to_user_id,user.name,user.follow_count,user.follower_count,user.is_follow").
-		Joins("join user on relation.to_user_id=user.id where relation.user_id =?", userId).Find(&followList).Error
-	return followList, err
+func (*RelationDao) InsertRelation(relation Relation) error {
+	return db.Create(&relation).Error
 }
 
-func (*RelationDao) SelectFollowerList(userId int64) ([]common.User, error) {
-	var followerList []common.User
-	err := db.Table("relation").Select("relation.user_id,user.name,user.follow_count,user.follower_count,user.is_follow").
-		Joins("join user on relation.user_id=user.id where relation.to_user_id=?", userId).Find(&followerList).Error
+func (*RelationDao) SelectFolloweeList(userId int64) ([]*Relation, error) {
+	var followeeList []*Relation
+	err := db.Where("follower_id=?", userId).Find(&followeeList).Error
+	return followeeList, err
+}
+
+func (*RelationDao) SelectFollowerList(userId int64) ([]*Relation, error) {
+	var followerList []*Relation
+	err := db.Where("followee_id=?", userId).Find(&followerList).Error
 	return followerList, err
+}
+
+func (*RelationDao) IsRelation(followerId int64, followeeId int64) (int64, error) {
+	var count int64
+	err := db.Model(&Relation{}).Where("follower_id=? and followee_id=?", followerId, followeeId).Count(&count).Error
+	if err != nil {
+		return -1, nil
+	} else {
+		return count, nil
+	}
 }

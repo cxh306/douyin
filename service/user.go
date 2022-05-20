@@ -3,133 +3,118 @@ package service
 import (
 	"douyin/common"
 	"douyin/dao"
+	"douyin/huancun"
 	"golang.org/x/crypto/bcrypt"
+	"sync"
 )
 
-func NewRegisterFlow(username, password string) *RegisterFlow {
-	return &RegisterFlow{username: username, password: password}
+var UserService *UserServiceImpl
+var userOnce sync.Once
+
+func NewUserServiceInstance() *UserServiceImpl {
+	userOnce.Do(
+		func() {
+			UserService = &UserServiceImpl{}
+		})
+	return UserService
 }
 
-func NewLoginFlow(username, password string) *LoginFlow {
-	return &LoginFlow{username: username, password: password}
+type UserServiceImpl struct {
 }
 
-func NewUserInfoFlow(id int64) *UserInfoFlow {
-	return &UserInfoFlow{id: id}
-}
-
-func Register(username, password string) (int64, string, error) {
-	return NewRegisterFlow(username, password).Do()
-}
-
-func Login(username, password string) (int64, string, error) {
-	return NewLoginFlow(username, password).Do()
-}
-
-func UserInfo(id int64) (*common.User, error) {
-	return NewUserInfoFlow(id).Do()
-}
-
-/**
-Register
-*/
-
-type RegisterFlow struct {
-	username, password string
-
-	enPWD string
-
-	userId int64
-	token  string
-}
-
-func (f *RegisterFlow) Do() (int64, string, error) {
-	if err := f.encodePWD(); err != nil {
-		return 0, "", err
-	}
-
-	if err := f.register(); err != nil {
-		return 0, "", err
-	}
-	f.tokenGenerate()
-	return f.userId, f.token, nil
-}
-
-func (f *RegisterFlow) register() error {
-	user := &dao.User{
-		Name:     f.username,
-		Password: f.enPWD,
-	}
-	if err := dao.NewUserDaoInstance().InsertUser(user); err != nil {
-		return err
-	}
-	f.userId = user.Id
-	return nil
-}
-
-func (f *RegisterFlow) encodePWD() error {
-	hash, err := bcrypt.GenerateFromPassword([]byte(f.password), bcrypt.DefaultCost) //加密处理
+func (f *UserServiceImpl) Register(req common.RegisterReq) common.UserRegisterResp {
+	username := req.Username
+	password := req.Password
+	user, err := dao.NewUserDaoInstance().QueryUserByName(username)
+	resp := common.UserRegisterResp{}
 	if err != nil {
-		return err
+		resp.StatusCode = 1
+		resp.StatusMsg = "用户已存在"
+		return resp
 	}
-	f.enPWD = string(hash)
-	return nil
-}
+	enPWD, err := f.encodePWD(password)
 
-func (f *RegisterFlow) tokenGenerate() {
-	f.token = f.username + f.enPWD
-}
-
-/**
-Login
-*/
-
-type LoginFlow struct {
-	username, password string
-
-	enPWD string
-
-	userId int64
-	token  string
-}
-
-func (f *LoginFlow) Do() (int64, string, error) {
-	user, err := dao.NewUserDaoInstance().QueryUserByName(f.username)
 	if err != nil {
-		return 0, "", err
+		resp.StatusCode = 1
+		resp.StatusMsg = "加密失败"
+		return resp
 	}
-	f.enPWD = user.Password
-	if err := bcrypt.CompareHashAndPassword([]byte(f.enPWD), []byte(f.password)); err != nil {
-		return 0, "", err
-	}
-	f.userId = user.Id
-	f.token = f.tokenGenerate()
 
-	return f.userId, f.token, nil
-}
-
-func (f *LoginFlow) tokenGenerate() string {
-	return f.username + f.enPWD
-}
-
-/**
-UserInfo
-*/
-type UserInfoFlow struct {
-	id int64
-
-	user common.User
-}
-
-func (f *UserInfoFlow) Do() (*common.User, error) {
-	user, err := dao.NewUserDaoInstance().QueryUserById(f.id)
+	id, err := f.register(username, enPWD)
 	if err != nil {
-		return nil, err
+		resp.StatusCode = 1
+		resp.StatusMsg = "注册失败"
+		return resp
 	}
-	return &common.User{
+	resp.UserId = id
+	resp.Token = f.tokenGenerate(username, enPWD)
+	huancun.UsersLoginInfo[resp.Token] = &common.User{
 		Id:            user.Id,
 		Name:          user.Name,
-		FollowCount:   user.FollowerCount,
+		FollowCount:   user.FollowCount,
 		FollowerCount: user.FollowerCount,
-	}, nil
+		IsFollow:      true,
+	}
+	return resp
+}
+
+func (f *UserServiceImpl) Login(req common.UserLoginReq) common.UserLoginResp {
+	user, err := dao.NewUserDaoInstance().QueryUserByName(req.Username)
+	rep := common.UserLoginResp{}
+	if err != nil {
+		rep.StatusCode = 1
+		rep.StatusMsg = "用户或密码不正确"
+		return rep
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+		rep.StatusCode = 1
+		rep.StatusMsg = "用户或密码不正确"
+		return rep
+	}
+	token := f.tokenGenerate(user.Name, user.Password)
+	rep.Token = token
+	rep.UserId = user.Id
+	huancun.UsersLoginInfo[rep.Token] = &common.User{
+		Id:            user.Id,
+		Name:          user.Name,
+		FollowCount:   user.FollowCount,
+		FollowerCount: user.FollowerCount,
+		IsFollow:      false,
+	}
+	return rep
+}
+
+func (f *UserServiceImpl) Info(req common.UserInfoReq) common.UserInfoResp {
+	user, exist := huancun.UsersLoginInfo[req.Token]
+	rep := common.UserInfoResp{}
+	if exist {
+		rep.User = *user
+	} else {
+		rep.StatusCode = 1
+		rep.StatusMsg = "用户未登陆"
+	}
+	return rep
+}
+
+func (f *UserServiceImpl) register(username, enPWD string) (int64, error) {
+	user := &dao.User{
+		Name:     username,
+		Password: enPWD,
+	}
+	if err := dao.NewUserDaoInstance().InsertUser(user); err != nil {
+		return 0, err
+	}
+	return user.Id, nil
+}
+
+func (f *UserServiceImpl) encodePWD(password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost) //加密处理
+	if err != nil {
+		return "", err
+	}
+	return string(hash), nil
+}
+
+func (f *UserServiceImpl) tokenGenerate(username, enPWD string) string {
+	return username + enPWD
 }

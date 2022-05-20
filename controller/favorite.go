@@ -2,66 +2,50 @@ package controller
 
 import (
 	"douyin/common"
+	"douyin/huancun"
 	"douyin/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 )
 
-// FavoriteAction no practical effect, just check if token is valid
+//FavoriteAction no practical effect, just check if token is valid
 func FavoriteAction(c *gin.Context) {
+	//userId,_ := strconv.ParseInt(c.Query("user_id"),10,64)
 	token := c.Query("token")
-	if _, exist := usersLoginInfo[token]; !exist {
+	videoId, _ := strconv.ParseInt(c.Query("video_id"), 10, 64)
+	actionType, _ := strconv.ParseInt(c.Query("action_type"), 10, 32)
+	user, exist := huancun.UsersLoginInfo[token]
+	if !exist {
 		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "用户未登陆"})
 		return
 	}
-	userId := usersLoginInfo[token].Id
-	videoId, _ := strconv.ParseInt(c.Query("video_id"), 10, 64)
-	actionType, _ := strconv.Atoi(c.Query("action_type"))
-	status := service.FavoriteAction(userId, videoId, actionType)
-	if status != 0 {
-		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "点赞出错"})
-	} else {
-		c.JSON(http.StatusOK, common.Response{StatusCode: 0})
+
+	req := common.FavoriteActionReq{
+		UserId:     user.Id,
+		Token:      token,
+		VideoId:    videoId,
+		ActionType: int32(actionType),
 	}
+
+	resp := service.FavoriteService.Action(req)
+	c.JSON(http.StatusOK, resp)
 }
 
-// FavoriteList all users have same favorite video list
 func FavoriteList(c *gin.Context) {
+	userId, _ := strconv.ParseInt(c.Query("user_id"), 10, 64)
 	token := c.Query("token")
-	user, exist := usersLoginInfo[token]
-	favorites, err := service.FavoriteList(user.Id)
-
-	videoList := make([]common.Video, len(favorites))
-	for i, v := range favorites {
-		videoList[i].Id = v.Id
-		videoList[i].Author = common.User{
-			Id:            user.Id,
-			Name:          user.Name,
-			FollowCount:   user.FollowCount,
-			FollowerCount: user.FollowerCount,
-			IsFollow:      user.IsFollow,
-		}
-		videoList[i].PlayUrl = v.PlayUrl
-		videoList[i].CoverUrl = v.CoverUrl
-		videoList[i].FavoriteCount = v.FavoriteCount
-		videoList[i].CommentCount = v.CommentCount
-		videoList[i].IsFavorite = v.IsFavorite
+	user, exist := huancun.UsersLoginInfo[token]
+	if !exist {
+		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "用户未登陆"})
 	}
-	if exist && err == nil {
-		c.JSON(http.StatusOK, VideoListResponse{
-			Response: common.Response{
-				StatusCode: 0,
-			},
-			VideoList: videoList,
-		})
-	} else {
-		c.JSON(http.StatusOK, VideoListResponse{
-			Response: common.Response{
-				StatusCode: 1,
-				StatusMsg:  "点赞视频列表出错",
-			},
-			VideoList: []common.Video{},
-		})
+	if userId != user.Id {
+		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "请求非法"})
 	}
+	req := common.FavoriteListReq{
+		UserId: userId,
+		Token:  token,
+	}
+	resp := service.FavoriteService.List(req)
+	c.JSON(http.StatusOK, resp)
 }

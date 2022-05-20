@@ -1,59 +1,49 @@
 package controller
 
 import (
+	"bytes"
 	"douyin/common"
+	"douyin/huancun"
 	"douyin/service"
-	"fmt"
 	"github.com/gin-gonic/gin"
+	"io"
 	"net/http"
-	"path/filepath"
 )
-
-type VideoListResponse struct {
-	common.Response
-	VideoList []common.Video `json:"video_list"`
-}
 
 // Publish check token then save upload file to public directory
 func Publish(c *gin.Context) {
-	token := c.Query("token")
-
-	if _, exist := usersLoginInfo[token]; !exist {
+	token, _ := c.GetPostForm("token")
+	title, _ := c.GetPostForm("title")
+	if _, exist := huancun.UsersLoginInfo[token]; !exist {
 		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
 		return
 	}
-
-	data, err := c.FormFile("data")
+	file, _, err := c.Request.FormFile("data")
+	defer file.Close()
 	if err != nil {
 		c.JSON(http.StatusOK, common.Response{
 			StatusCode: 1,
-			StatusMsg:  err.Error(),
+			StatusMsg:  "视频上传错误",
 		})
 		return
 	}
-
-	filename := filepath.Base(data.Filename)
-	user := usersLoginInfo[token]
-	finalName := fmt.Sprintf("%d_%s", user.Id, filename)
-	saveFile := filepath.Join("./public/", finalName)
-	if err := c.SaveUploadedFile(data, saveFile); err != nil {
+	buf := bytes.NewBuffer(nil)
+	if _, err := io.Copy(buf, file); err != nil {
 		c.JSON(http.StatusOK, common.Response{
 			StatusCode: 1,
-			StatusMsg:  err.Error(),
+			StatusMsg:  "视频上传错误",
 		})
 		return
 	}
-
-	c.JSON(http.StatusOK, common.Response{
-		StatusCode: 0,
-		StatusMsg:  finalName + " uploaded successfully",
-	})
+	req := common.PublishReq{Token: token, Data: buf.Bytes(), Title: title}
+	resp := service.VideoService.Publish(req)
+	c.JSON(http.StatusOK, resp)
 }
 
 // PublishList all users have same publish video list
 func PublishList(c *gin.Context) {
 	token := c.Query("token")
-	user, exist := usersLoginInfo[token]
+	user, exist := huancun.UsersLoginInfo[token]
 	if !exist {
 		c.JSON(http.StatusOK, common.Response{
 			StatusCode: 1,
@@ -61,32 +51,7 @@ func PublishList(c *gin.Context) {
 		})
 		return
 	}
-	videoList, errVideo := service.PublisList(user.Id)
-	if errVideo != nil {
-		c.JSON(http.StatusOK, common.Response{
-			StatusCode: 1,
-			StatusMsg:  "视频错误",
-		})
-		return
-	}
-	videoVOList := make([]common.Video, len(videoList))
-	userVO := *user
-	for i, video := range videoList {
-		videoVOList[i] = common.Video{
-			Id:            video.Id,
-			Author:        userVO,
-			PlayUrl:       video.PlayUrl,
-			CoverUrl:      video.CoverUrl,
-			FavoriteCount: video.FavoriteCount,
-			CommentCount:  video.CommentCount,
-			IsFavorite:    false,
-		}
-	}
-
-	c.JSON(http.StatusOK, VideoListResponse{
-		Response: common.Response{
-			StatusCode: 0,
-		},
-		VideoList: videoVOList,
-	})
+	req := common.PublishListReq{UserId: user.Id, Token: token}
+	resp := service.VideoService.PublishList(req)
+	c.JSON(http.StatusOK, resp)
 }
