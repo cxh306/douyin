@@ -26,8 +26,5 @@ func Init() error {
 	if err := util.InitLogger(); err != nil {
 		return err
 	}
-	dao.NewUserDaoInstance()
-	dao.NewVideoDaoInstance()
-	dao.NewVideoDaoInstance()
 	return nil
 }
