@@ -6,15 +6,15 @@ import (
 	"sync"
 )
 
-var relationService *RelationServiceImpl
+var RelationService *RelationServiceImpl
 var relationOnce sync.Once
 
 func NewRelationServiceInstance() *RelationServiceImpl {
 	relationOnce.Do(
 		func() {
-			relationService = &RelationServiceImpl{}
+			RelationService = &RelationServiceImpl{}
 		})
-	return relationService
+	return RelationService
 }
 
 type RelationServiceImpl struct {

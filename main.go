@@ -28,5 +28,6 @@ func Init() error {
 	}
 	dao.NewUserDaoInstance()
 	dao.NewVideoDaoInstance()
+	dao.NewVideoDaoInstance()
 	return nil
 }

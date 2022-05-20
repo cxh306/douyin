@@ -36,7 +36,7 @@ func RelationAction(c *gin.Context) {
 	req.FolloweeId = followeeId
 	req.ActionType = int32(actionType)
 	req.Token = token
-	c.JSON(http.StatusOK, service.NewRelationServiceInstance().Action(req))
+	c.JSON(http.StatusOK, service.RelationService.Action(req))
 }
 
 // FollowList all users have same follow list
@@ -63,7 +63,7 @@ func FollowList(c *gin.Context) {
 		UserId: user.Id,
 		Token:  token,
 	}
-	c.JSON(http.StatusOK, service.NewRelationServiceInstance().FolloweeList(req))
+	c.JSON(http.StatusOK, service.RelationService.FolloweeList(req))
 }
 
 // FollowerList all users have same follower list
@@ -90,5 +90,5 @@ func FollowerList(c *gin.Context) {
 		UserId: user.Id,
 		Token:  token,
 	}
-	c.JSON(http.StatusOK, service.NewRelationServiceInstance().FollowerList(req))
+	c.JSON(http.StatusOK, service.RelationService.FollowerList(req))
 }

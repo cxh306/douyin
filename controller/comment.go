@@ -54,6 +54,6 @@ func CommentList(c *gin.Context) {
 		Token:   token,
 		VideoId: videoId,
 	}
-	resp := service.NewCommentServiceInstance().List(req)
+	resp := service.CommentService.List(req)
 	c.JSON(http.StatusOK, resp)
 }
