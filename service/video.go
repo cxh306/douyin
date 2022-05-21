@@ -94,24 +94,44 @@ func (f *VideoServiceImpl) Publish(req common.PublishReq) common.PublishResp {
 	token := req.Token
 	data := req.Data
 	title := req.Title
-	user, _ := redis.UsersLoginInfo[token]
-	filename := fmt.Sprintf("%d_%s", user.Id, title)
-	saveVideoPath := filepath.Join("./public/", filename+".mp4")
-
-	if err := ioutil.WriteFile(saveVideoPath, data, 0666); err != nil {
+	user, _ := redis.Get(token)
+	if user == nil {
 		resp.StatusCode = 1
-		resp.StatusMsg = "视频保存出错"
+		resp.StatusMsg = "用户未登陆"
 		return resp
 	}
 
+	filename := fmt.Sprintf("%d_%s", user.Id, title)
+	saveVideoPath := filepath.Join("./public/", filename+".mp4")
 	saveCoverPath := filepath.Join("./public/", filename+".jpg")
-	cmd := exec.Command("ffmpeg", "-i", saveVideoPath, "-frames:v", "1", saveCoverPath)
 
-	err := cmd.Run()
-	if err != nil {
-		resp.StatusCode = 1
-		resp.StatusMsg = "封面生成出错"
-		return resp
+	//非必需，只是学习goroutine
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	ch := make(chan error, 3)
+	go func() {
+		defer wg.Done()
+		defer close(ch)
+		err := ioutil.WriteFile(saveVideoPath, data, 0666)
+		if err != nil {
+			ch <- err
+		}
+		cmd := exec.Command("ffmpeg", "-i", saveVideoPath, "-ss", "00:00:10", "-frames:v", "1", saveCoverPath)
+
+		if err = cmd.Run(); err != nil {
+			ch <- err
+			if err = os.Remove(saveVideoPath); err != nil {
+				ch <- err
+			}
+		}
+	}()
+	wg.Wait()
+	for err := range ch {
+		if err != nil {
+			resp.StatusCode = 1
+			resp.StatusMsg = "保存文件失败"
+			return resp
+		}
 	}
 
 	playUrl := config.Url + "/static/" + filename + ".mp4"
