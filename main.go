@@ -2,6 +2,7 @@ package main
 
 import (
 	"douyin/dao"
+	"douyin/redis"
 	"douyin/util"
 	"github.com/gin-gonic/gin"
 	"os"
@@ -24,6 +25,9 @@ func Init() error {
 		return err
 	}
 	if err := util.InitLogger(); err != nil {
+		return err
+	}
+	if err := redis.Init(); err != nil {
 		return err
 	}
 	return nil

@@ -29,7 +29,7 @@ func NewRelationDaoInstance() *RelationDao {
 }
 
 func (*RelationDao) DeleteRelation(relation Relation) error {
-	return db.Delete(&relation).Error
+	return db.Where("follower_id=? AND followee_id=?", relation.UserId, relation.ToUserId).Delete(&Relation{}).Error
 }
 
 func (*RelationDao) InsertRelation(relation Relation) error {

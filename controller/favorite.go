@@ -2,7 +2,7 @@ package controller
 
 import (
 	"douyin/common"
-	"douyin/huancun"
+	"douyin/redis"
 	"douyin/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -15,9 +15,12 @@ func FavoriteAction(c *gin.Context) {
 	token := c.Query("token")
 	videoId, _ := strconv.ParseInt(c.Query("video_id"), 10, 64)
 	actionType, _ := strconv.ParseInt(c.Query("action_type"), 10, 32)
-	user, exist := huancun.UsersLoginInfo[token]
-	if !exist {
-		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "用户未登陆"})
+	user, _ := redis.Get(token)
+	if user == nil {
+		c.JSON(http.StatusOK, common.Response{
+			StatusCode: 1,
+			StatusMsg:  "用户未登陆",
+		})
 		return
 	}
 
@@ -35,9 +38,13 @@ func FavoriteAction(c *gin.Context) {
 func FavoriteList(c *gin.Context) {
 	userId, _ := strconv.ParseInt(c.Query("user_id"), 10, 64)
 	token := c.Query("token")
-	user, exist := huancun.UsersLoginInfo[token]
-	if !exist {
-		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "用户未登陆"})
+	user, _ := redis.Get(token)
+	if user == nil {
+		c.JSON(http.StatusOK, common.Response{
+			StatusCode: 1,
+			StatusMsg:  "用户未登陆",
+		})
+		return
 	}
 	if userId != user.Id {
 		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "请求非法"})

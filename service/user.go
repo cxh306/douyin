@@ -3,7 +3,7 @@ package service
 import (
 	"douyin/common"
 	"douyin/dao"
-	"douyin/huancun"
+	"douyin/redis"
 	"golang.org/x/crypto/bcrypt"
 	"sync"
 )
@@ -48,52 +48,82 @@ func (f *UserServiceImpl) Register(req common.RegisterReq) common.UserRegisterRe
 	}
 	resp.UserId = id
 	resp.Token = f.tokenGenerate(username, enPWD)
-	huancun.UsersLoginInfo[resp.Token] = &common.User{
+
+	userResp := common.User{
 		Id:            user.Id,
 		Name:          user.Name,
 		FollowCount:   user.FollowCount,
 		FollowerCount: user.FollowerCount,
 		IsFollow:      true,
 	}
+	token := resp.Token
+	if err := redis.Set(token, userResp); err != nil {
+		resp.StatusCode = 1
+		resp.StatusMsg = err.Error()
+	}
 	return resp
 }
 
 func (f *UserServiceImpl) Login(req common.UserLoginReq) common.UserLoginResp {
 	user, err := dao.NewUserDaoInstance().QueryUserByName(req.Username)
-	rep := common.UserLoginResp{}
+	resp := common.UserLoginResp{}
 	if err != nil {
-		rep.StatusCode = 1
-		rep.StatusMsg = "用户或密码不正确"
-		return rep
+		resp.StatusCode = 1
+		resp.StatusMsg = "用户或密码不正确"
+		return resp
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		rep.StatusCode = 1
-		rep.StatusMsg = "用户或密码不正确"
-		return rep
+		resp.StatusCode = 1
+		resp.StatusMsg = "用户或密码不正确"
+		return resp
 	}
 	token := f.tokenGenerate(user.Name, user.Password)
-	rep.Token = token
-	rep.UserId = user.Id
-	huancun.UsersLoginInfo[rep.Token] = &common.User{
+
+	userRedis, err := redis.Get(token)
+
+	if err != nil {
+		resp.StatusCode = 1
+		resp.StatusMsg = err.Error()
+		return resp
+	}
+	if userRedis != nil {
+		resp.StatusCode = 1
+		resp.StatusMsg = "用户已登陆"
+		return resp
+	}
+
+	resp.Token = token
+	resp.UserId = user.Id
+	userRes := common.User{
 		Id:            user.Id,
 		Name:          user.Name,
 		FollowCount:   user.FollowCount,
 		FollowerCount: user.FollowerCount,
 		IsFollow:      false,
 	}
-	return rep
+	if err := redis.Set(token, userRes); err != nil {
+		resp.StatusCode = 1
+		resp.StatusMsg = err.Error()
+	}
+	return resp
 }
 
 func (f *UserServiceImpl) Info(req common.UserInfoReq) common.UserInfoResp {
-	user, exist := huancun.UsersLoginInfo[req.Token]
-	rep := common.UserInfoResp{}
-	if exist {
-		rep.User = *user
-	} else {
-		rep.StatusCode = 1
-		rep.StatusMsg = "用户未登陆"
+	resp := common.UserInfoResp{}
+	token := req.Token
+	userRedis, err := redis.Get(token)
+	if err != nil {
+		resp.StatusCode = 1
+		resp.StatusMsg = err.Error()
+		return resp
 	}
-	return rep
+	if userRedis == nil {
+		resp.StatusCode = 1
+		resp.StatusMsg = "用户未登陆"
+		return resp
+	}
+	resp.User = *userRedis
+	return resp
 }
 
 func (f *UserServiceImpl) register(username, enPWD string) (int64, error) {

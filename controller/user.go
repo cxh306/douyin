@@ -2,7 +2,6 @@ package controller
 
 import (
 	"douyin/common"
-	"douyin/huancun"
 	"douyin/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -28,15 +27,7 @@ func Register(c *gin.Context) {
 func Login(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
-	token := c.Query("token")
-	if _, exist := huancun.UsersLoginInfo[token]; exist {
-		c.JSON(http.StatusOK, common.UserLoginResp{
-			Response: common.Response{
-				StatusCode: 1,
-				StatusMsg:  "用户已登陆",
-			},
-		})
-	}
+
 	req := common.UserLoginReq{Username: username, Password: password}
 	resp := service.UserService.Login(req)
 	c.JSON(http.StatusOK, resp)

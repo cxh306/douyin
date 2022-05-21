@@ -4,10 +4,11 @@ import (
 	"douyin/common"
 	"douyin/config"
 	"douyin/dao"
-	"douyin/huancun"
+	"douyin/redis"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sync"
 	"time"
@@ -31,8 +32,8 @@ func (f *VideoServiceImpl) Feed(req common.FeedReq) common.FeedResp {
 	latestTime := req.LatestTime
 	token := req.Token
 	resp := common.FeedResp{}
-	user, isLogin := huancun.UsersLoginInfo[token]
-	limit := 30
+	user, isLogin := redis.UsersLoginInfo[token]
+	limit := 2
 	videoList, err := dao.NewVideoDaoInstance().SelectListByLimit(latestTime, limit)
 	if err != nil {
 		resp.StatusCode = 1
@@ -84,6 +85,7 @@ func (f *VideoServiceImpl) Feed(req common.FeedReq) common.FeedResp {
 		}
 	}
 	resp.VideoList = v
+	resp.NextTime = videoList[len(videoList)-1].CreateTime.Unix()
 	return resp
 }
 
@@ -92,23 +94,39 @@ func (f *VideoServiceImpl) Publish(req common.PublishReq) common.PublishResp {
 	token := req.Token
 	data := req.Data
 	title := req.Title
-	user, _ := huancun.UsersLoginInfo[token]
-	filename := fmt.Sprintf("%d_%s.mp4", user.Id, title)
-	saveFile := filepath.Join("./public/", filename)
+	user, _ := redis.UsersLoginInfo[token]
+	filename := fmt.Sprintf("%d_%s", user.Id, title)
+	saveVideoPath := filepath.Join("./public/", filename+".mp4")
 
-	if err := ioutil.WriteFile(saveFile, data, 0666); err != nil {
+	if err := ioutil.WriteFile(saveVideoPath, data, 0666); err != nil {
 		resp.StatusCode = 1
 		resp.StatusMsg = "视频保存出错"
 		return resp
 	}
-	playUrl := config.Url + "/static/" + filename
-	video := dao.Video{UserId: user.Id, PlayUrl: playUrl, Title: title, CreateTime: time.Now()}
+
+	saveCoverPath := filepath.Join("./public/", filename+".jpg")
+	cmd := exec.Command("ffmpeg", "-i", saveVideoPath, "-frames:v", "1", saveCoverPath)
+
+	err := cmd.Run()
+	if err != nil {
+		resp.StatusCode = 1
+		resp.StatusMsg = "封面生成出错"
+		return resp
+	}
+
+	playUrl := config.Url + "/static/" + filename + ".mp4"
+	coverUrl := config.Url + "/static/" + filename + ".jpg"
+	video := dao.Video{UserId: user.Id, PlayUrl: playUrl, CoverUrl: coverUrl, Title: title, CreateTime: time.Now()}
 	if err := dao.NewVideoDaoInstance().InsertVideo(video); err != nil {
 		resp.StatusCode = 1
 		resp.StatusMsg = "视频入库出错"
-		err := os.Remove(saveFile)
+		err := os.Remove(saveVideoPath)
 		if err != nil {
-			resp.StatusMsg += "&本地文件删除出错"
+			resp.StatusMsg += "&视频删除出错"
+		}
+		err = os.Remove(saveCoverPath)
+		if err != nil {
+			resp.StatusMsg += "&视频封面删除出错"
 		}
 	}
 	return resp

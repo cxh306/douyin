@@ -3,7 +3,7 @@ package controller
 import (
 	"bytes"
 	"douyin/common"
-	"douyin/huancun"
+	"douyin/redis"
 	"douyin/service"
 	"github.com/gin-gonic/gin"
 	"io"
@@ -14,8 +14,9 @@ import (
 func Publish(c *gin.Context) {
 	token, _ := c.GetPostForm("token")
 	title, _ := c.GetPostForm("title")
-	if _, exist := huancun.UsersLoginInfo[token]; !exist {
-		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+	user, _ := redis.Get(token)
+	if user == nil {
+		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "用户未登陆"})
 		return
 	}
 	file, _, err := c.Request.FormFile("data")
@@ -43,8 +44,8 @@ func Publish(c *gin.Context) {
 // PublishList all users have same publish video list
 func PublishList(c *gin.Context) {
 	token := c.Query("token")
-	user, exist := huancun.UsersLoginInfo[token]
-	if !exist {
+	user, _ := redis.Get(token)
+	if user == nil {
 		c.JSON(http.StatusOK, common.Response{
 			StatusCode: 1,
 			StatusMsg:  "用户未登陆",

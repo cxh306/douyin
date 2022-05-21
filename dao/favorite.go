@@ -51,7 +51,7 @@ func (*FavoriteDao) CreateInstance(favorite Favorite) error {
 }
 
 func (*FavoriteDao) DeleteInstance(favorite Favorite) error {
-	return db.Delete(&favorite).Error
+	return db.Where("user_id=? AND video_id=?", favorite.UserId, favorite.VideoId).Delete(&Favorite{}).Error
 }
 
 func (*FavoriteDao) IsFavorite(userId int64, videoId int64) (int64, error) {

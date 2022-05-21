@@ -104,3 +104,13 @@ func (v *VideoDao) UpdateCommentCount(videoId int64, actionType int32) error {
 	}
 	return db.Model(&Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count"+str+"?", 1)).Error
 }
+
+func (v *VideoDao) UpdateCoverUrl(videoId int64, actionType int32) error {
+	var str string
+	if actionType == 1 {
+		str = "+"
+	} else {
+		str = "-"
+	}
+	return db.Model(&Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count"+str+"?", 1)).Error
+}
