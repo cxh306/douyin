@@ -2,13 +2,20 @@ package dao
 
 import "time"
 
-func CommentAction(userId int64, videoId int64, actionType int32, commentText string) error {
+func CommentAction(commentId int64, userId int64, videoId int64, actionType int32, commentText string) error {
 	tx := db.Begin()
-	comment := Comment{UserId: userId, VideoId: videoId, CommentText: commentText, CreateTime: time.Now()}
+	comment := Comment{Id: commentId, UserId: userId, VideoId: videoId, CommentText: commentText, CreateTime: time.Now()}
 
-	if err := commentDao.CreateInstance(&comment); err != nil {
-		tx.Rollback()
-		return err
+	if actionType == 1 {
+		if err := commentDao.CreateInstance(&comment); err != nil {
+			tx.Rollback()
+			return err
+		}
+	} else {
+		if err := commentDao.DeleteInstance(&comment); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 	if err := videoDao.UpdateCommentCount(videoId, actionType); err != nil {
 		tx.Rollback()

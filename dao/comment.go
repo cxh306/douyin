@@ -35,12 +35,18 @@ func (*CommentDao) CreateInstance(comment *Comment) error {
 	return db.Create(comment).Error
 }
 
-func (*CommentDao) DeleteInstance(commentId int64) error {
-	return db.Where("comment_id = ?", commentId).Delete(&Comment{}).Error
+func (*CommentDao) DeleteInstance(comment *Comment) error {
+	return db.Delete(comment).Error
 }
 
-func (*CommentDao) SelectCommentList(videoId int64) ([]Comment, error) {
+func (*CommentDao) SelectComments(videoId int64) ([]Comment, error) {
 	var commentList []Comment
 	err := db.Where("video_id = ?", videoId).Find(&commentList).Error
 	return commentList, err
+}
+
+func (*CommentDao) QueryComment(userId int64, videoId int64) (Comment, error) {
+	var comment Comment
+	err := db.Where("user_id = ? AND video_id=?", userId, videoId).Find(&comment).Error
+	return comment, err
 }

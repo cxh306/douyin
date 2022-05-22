@@ -22,7 +22,7 @@ type CommentServiceImpl struct {
 
 func (f *CommentServiceImpl) Action(req common.CommentActionReq) common.CommentActionResp {
 	resp := common.CommentActionResp{}
-	if err := dao.CommentAction(req.UserId, req.VideoId, req.ActionType, req.CommentText); err != nil {
+	if err := dao.CommentAction(req.CommentId, req.UserId, req.VideoId, req.ActionType, req.CommentText); err != nil {
 		resp.StatusCode = 1
 		resp.StatusMsg = "评论错误"
 	}
@@ -32,7 +32,7 @@ func (f *CommentServiceImpl) Action(req common.CommentActionReq) common.CommentA
 func (f *CommentServiceImpl) List(req common.CommentListReq) common.CommentListResp {
 	resp := common.CommentListResp{}
 	videoId := req.VideoId
-	cl, err := dao.NewCommentDaoInstance().SelectCommentList(videoId)
+	cl, err := dao.NewCommentDaoInstance().SelectComments(videoId)
 	if err != nil {
 		resp.StatusCode = 1
 		resp.StatusMsg = "评论列表出错"

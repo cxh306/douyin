@@ -41,16 +41,7 @@ func CommentList(c *gin.Context) {
 	videoId, _ := strconv.ParseInt(c.Query("video_id"), 10, 64)
 	token := c.Query("token")
 
-	user, _ := redis.Get(token)
-	if user == nil {
-		c.JSON(http.StatusOK, common.Response{
-			StatusCode: 1,
-			StatusMsg:  "用户未登陆",
-		})
-		return
-	}
 	req := common.CommentListReq{
-		UserId:  user.Id,
 		Token:   token,
 		VideoId: videoId,
 	}

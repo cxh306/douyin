@@ -33,7 +33,7 @@ func (f *VideoServiceImpl) Feed(req common.FeedReq) common.FeedResp {
 	token := req.Token
 	resp := common.FeedResp{}
 	user, isLogin := redis.UsersLoginInfo[token]
-	limit := 2
+	limit := 20
 	videoList, err := dao.NewVideoDaoInstance().SelectListByLimit(latestTime, limit)
 	if err != nil {
 		resp.StatusCode = 1
