@@ -56,7 +56,7 @@ func (*FavoriteDao) DeleteInstance(favorite Favorite) error {
 
 func (*FavoriteDao) IsFavorite(userId int64, videoId int64) (int64, error) {
 	var count int64
-	err := db.Model(&Favorite{}).Where("user_id=? and video_id=?", userId, videoId).Count(&count).Error
+	err := db.Model(&Favorite{}).Where("user_id=? AND video_id=?", userId, videoId).Count(&count).Error
 	if err != nil {
 		return -1, nil
 	} else {

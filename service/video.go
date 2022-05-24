@@ -32,7 +32,7 @@ func (f *VideoServiceImpl) Feed(req common.FeedReq) common.FeedResp {
 	latestTime := req.LatestTime
 	token := req.Token
 	resp := common.FeedResp{}
-	user, isLogin := redis.UsersLoginInfo[token]
+	user, err := redis.Get(token)
 	limit := 2
 	//time:=time.UnixMilli(latestTime).Format("2006-01-02 15:04:05")
 	videoList, err := dao.NewVideoDaoInstance().SelectListByLimit(latestTime/1000, limit)
@@ -63,7 +63,8 @@ func (f *VideoServiceImpl) Feed(req common.FeedReq) common.FeedResp {
 		v[i].CommentCount = videoList[i].CommentCount
 		v[i].Title = videoList[i].Title
 	}
-	if isLogin {
+	//用户已登陆
+	if user != nil {
 		for i := range v {
 			isRelation, err1 := dao.NewRelationDaoInstance().IsRelation(user.Id, v[i].Author.Id)
 			if err1 != nil {
