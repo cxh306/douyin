@@ -49,7 +49,7 @@ func (v *VideoDao) SelectListByUserId(userId int64) ([]*Video, error) {
 
 func (v *VideoDao) SelectListByLimit(time int64, limit int) ([]*Video, error) {
 	var video []*Video
-	err := db.Where("unix_timestamp(create_time) <= ?", time).Order("create_time DESC").Limit(limit).Find(&video).Error
+	err := db.Where("unix_timestamp(create_time) < ?", time).Order("create_time DESC").Limit(limit).Find(&video).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	} else if err != nil {

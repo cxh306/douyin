@@ -35,7 +35,7 @@ func (f *VideoServiceImpl) Feed(req common.FeedReq) common.FeedResp {
 	user, err := redis.Get(token)
 	limit := 2
 	//time:=time.UnixMilli(latestTime).Format("2006-01-02 15:04:05")
-	videoList, err := dao.NewVideoDaoInstance().SelectListByLimit(latestTime/1000, limit)
+	videoList, err := dao.NewVideoDaoInstance().SelectListByLimit(latestTime, limit)
 	if err != nil {
 		resp.StatusCode = 1
 		resp.StatusMsg = "视频流出错"
@@ -87,7 +87,12 @@ func (f *VideoServiceImpl) Feed(req common.FeedReq) common.FeedResp {
 		}
 	}
 	resp.VideoList = v
-	resp.NextTime = videoList[len(videoList)-1].CreateTime.UnixMilli()
+
+	if len(videoList) == 0 {
+		resp.NextTime = time.Now().Unix()
+	} else {
+		resp.NextTime = videoList[len(videoList)-1].CreateTime.Unix()
+	}
 	return resp
 }
 

@@ -48,6 +48,7 @@ func FavoriteList(c *gin.Context) {
 	}
 	if userId != user.Id {
 		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "请求非法"})
+		return
 	}
 	req := common.FavoriteListReq{
 		UserId: userId,
