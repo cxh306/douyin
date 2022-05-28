@@ -25,13 +25,6 @@ func RelationAction(c *gin.Context) {
 		return
 	}
 
-	//if followerId != user.Id{
-	//	c.JSON(http.StatusOK,common.Response{
-	//		StatusCode: 1,
-	//		StatusMsg: "请求非法",
-	//	})
-	//	return
-	//}
 	req := common.RelationActionReq{}
 	req.FollowerId = user.Id
 	req.FolloweeId = followeeId
@@ -53,13 +46,6 @@ func FollowList(c *gin.Context) {
 		return
 	}
 
-	//if userId!=user.Id {
-	//	c.JSON(http.StatusOK,common.Response{
-	//		StatusCode: 1,
-	//		StatusMsg: "请求非法",
-	//	})
-	//	return
-	//}
 	req := common.FollowListReq{
 		UserId: user.Id,
 		Token:  token,

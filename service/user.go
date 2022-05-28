@@ -4,6 +4,7 @@ import (
 	"douyin/common"
 	"douyin/dao"
 	"douyin/redis"
+	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
 	"sync"
 )
@@ -47,7 +48,7 @@ func (f *UserServiceImpl) Register(req common.RegisterReq) common.UserRegisterRe
 		return resp
 	}
 	resp.UserId = id
-	resp.Token = f.tokenGenerate(username, enPWD)
+	resp.Token = f.tokenGenerate(username, password)
 
 	userResp := common.User{
 		Id:            user.Id,
@@ -77,7 +78,9 @@ func (f *UserServiceImpl) Login(req common.UserLoginReq) common.UserLoginResp {
 		resp.StatusMsg = "用户或密码不正确"
 		return resp
 	}
-	token := f.tokenGenerate(user.Name, user.Password)
+	username := user.Name
+	password := req.Password
+	token := f.tokenGenerate(username, password)
 
 	userRedis, err := redis.Get(token)
 
@@ -145,6 +148,16 @@ func (f *UserServiceImpl) encodePWD(password string) (string, error) {
 	return string(hash), nil
 }
 
-func (f *UserServiceImpl) tokenGenerate(username, enPWD string) string {
-	return username + enPWD
+func (f *UserServiceImpl) tokenGenerate(username, password string) string {
+	dict := make(map[string]interface{})
+	dict["username"] = username
+	dict["password"] = password
+	token, _ := GenerateToken(dict, "1a2b3c") // 生成token
+	return token
+}
+
+// GenerateToken 生成Token值
+func GenerateToken(mapClaims jwt.MapClaims, key string) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, mapClaims)
+	return token.SignedString([]byte(key))
 }
